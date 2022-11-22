@@ -1,5 +1,3 @@
-package Team_project;
-
 import javax.swing.*;
 
 import java.awt.BorderLayout;
