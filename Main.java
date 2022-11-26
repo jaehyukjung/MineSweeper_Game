@@ -1,10 +1,6 @@
 import javax.swing.*;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.List;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -38,6 +34,7 @@ public class Main extends JPanel implements ActionListener{
     private static String buttonFace = ":)";
     private static int numBombsLeft = 99;
     private static int secondsCounter = 0;
+
 
     public Main(){
         for (int i=0; i<height; i++){
@@ -267,8 +264,14 @@ public class Main extends JPanel implements ActionListener{
                     else
                         g.drawString("B", startX+8+j*23, startY+15+i*23);
                 }else{
-                    g.setColor(Color.GREEN);
+//                    g.setColor(Color.GREEN);
                     g.fillRect(startX+j*23, startY+i*23, 22, 22);
+                    ImageIcon flag = new ImageIcon("C:/Users/정재혁/MineSweeper_Game/sprites/flag.png");
+                    Image img = flag.getImage();//아이콘을 이미지로 받아옴 -> 사이즈 조절을 위함
+                    Image changeImg = img.getScaledInstance(22,22, Image.SCALE_SMOOTH);// 아이콘 사이즈 조절
+                    ImageIcon Flag = new ImageIcon(changeImg);// 다시 아이콘으로 변경!!
+                    g.drawImage(changeImg,startX+8+j*23 - 8, startY+15+i*23 -14, this);
+
                 }
                 g.setColor(buttonColorChange);
                 g.fillRect(350, 30, 50, 50);
@@ -281,10 +284,7 @@ public class Main extends JPanel implements ActionListener{
                 g.drawString(Integer.toString(numBombsLeft), 175, 55);
                 g.drawString(Integer.toString(secondsCounter), 555, 55);
             }
-
         }
-
-
     }
     public void printBoard(){ // for test
         for (int i=0; i<height; i++){
@@ -294,13 +294,7 @@ public class Main extends JPanel implements ActionListener{
             System.out.println("\n");
         }
     }
-
-
-
     public void actionPerformed(ActionEvent e) {
         repaint();
-
     }
-
-
 }
