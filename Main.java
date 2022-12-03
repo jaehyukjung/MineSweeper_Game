@@ -13,288 +13,316 @@ import java.util.TimerTask;
 
 
 public class Main extends JPanel implements ActionListener{
+    // Game Admin Frame
     private static JFrame frame;
-    private static Main main;
-    private static int width = 30;
-    private static int height = 16;
-    private static int windowWidth = 750;
-    private static int windowHeight = 600;
-    private static int frameWidth = 690;
-    private static int frameHeight = 368;
-    private static int[][] board = new int[height][width]; // 게임 보드
-    private static int[][] onOffBoard = new int[height][width];  // 게임 버튼이 눌렸는지 아닌지 판단하기 위한 맵
-    private static int [] template = {-1, 0, 1};
-    private Timer timer;
-    private static Timer secondsTimer;
-    private static int startX = 20;
-    private static int startY = 110;
+
+    // Board Size
+    private static final int BOARD_WIDTH = 278;
+    private static final int BOARD_HEIGHT = 275;
+
+    // Mine Board Size
+    private static final int MINE_BOARD_WIDTH = 9;
+    private static final int MINE_BOARD_HEIGHT = 9;
+
+
+    // mineBoard: 숫자 및 지뢰가 설치되는 보드 (default value : 0)
+    // 0~8: 해당 칸 주변의 지뢰 개수, 9: 지뢰
+    private static int[][] mineBoard = new int[9][9];
+
+    // onOffBoard: 숫자를 심어놓은 보드를 열고 가리는 가림판
+    // 0: , 1: 아직 열지 않은 지뢰판, 2: 깃발, //TODO: 3: 물음표
+    private static int[][] buttonBoard = new int[9][9];
+    private static Timer timer;
+
+    // mousePressed 이벤트 (pressed) 호출 시: true,
     private static boolean firstClick = true;
     private static boolean gameOver = false;
-    private static Color buttonColorChange = Color.LIGHT_GRAY;
-    private static String buttonFace = ":)";
-    private static int numBombsLeft = 99;
-    private static int secondsCounter = 0;
+    private static boolean winningFlag = false;
 
+    private static int mine = 10;
+    private static int timeCounter = 0;
 
-    public Main(){
-        for (int i=0; i<height; i++){
-            Arrays.fill(onOffBoard[i], 1); // onoffBoard가 1이면 클릭이 가능한 상태
+    public Main() {
+        for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
+            Arrays.fill(buttonBoard[i], 1);
         }
-        timer = new Timer(1000/30, this);
-        timer.start();
+        Timer init = new Timer(1000 / 30, this);
+        init.start();
         ActionListener taskPerformer = new ActionListener() {
             public void actionPerformed(ActionEvent evt) {
-                secondsCounter++;
+                timeCounter++;
             }
         };
-        secondsTimer = new Timer(1000, taskPerformer);
+        timer = new Timer(1000, taskPerformer);
     }
+    public static void main(String args[]) {
+        frame = new JFrame("Minesweeper");
+        frame.setLayout(new GridLayout());
 
-    public static void makeBoard(int y, int x){  //첫 클릭시 맵 만들기 (맵 만드는 함수)
-        for (int i=0; i<height; i++){
-            Arrays.fill(board[i], 0);
-        }
-        int Boom = 99; // number of mines (지뢰 개수)
-        Random rand = new Random();
+        Main mineSweeper = new Main();
+        frame.add(mineSweeper);
 
-        while (Boom-- > 0){ // 지뢰 생성
-            if (Boom == 0){
-                break;
-            }
-            int rand1 = rand.nextInt(16);
-            int rand2 = rand.nextInt(30);
-
-            if (board[rand1][rand2] == 9){ // 이미 해당 칸이 지뢰인 경우
-                Boom++;
-                continue;
-            }
-            if (rand1 == y && rand2 == x){ // 클릭한 곳인 경우 (처음 선택한 곧은 지뢰 x)
-                Boom++;
-                continue;
-            }
-
-            board[rand1][rand2] = 9; // 지뢰 있는 곳을 9로 설정
-        }
-        //나머지 좌표를 설정
-        for(int i =0;i < board.length; i++){
-            for(int j =0; j<board[0].length;j++){
-                if(board[i][j] != 9){ //지뢰가 없는 곳이라면
-                    board[i][j] = count_boom(i, j); //해당 함수를 통해 값을 설정
-                }
-            }
-        }
-    }
-    public static int count_boom(int row, int col){ //맵 생성시 주변을 확인해 맵 값 선택
-        int sum = 0;
-        int nx = 0;
-        int ny = 0;
-        for(int i = 0; i< template.length;i++){
-            nx = (row + template[i]);
-            if (nx < 0 || nx >= board.length){ }
-            else{
-                for (int j =0;j<template.length;j++){
-                    ny = col + template[j];
-                    if (ny< 0 || ny >= board[0].length || (nx ==row && ny == col)){ }
-                    else if(board[nx][ny] == 9) sum +=1;
-                }
-            }
-        }
-        return sum;
-    }
-
-    public static void main(String args[]){
-        frame = new JFrame("5Team JJang");
-        frame.setLayout(new BorderLayout());
-
-        Main game = new Main();
-        frame.add(game, BorderLayout.CENTER);  // center에 온오프 보드 배열 배치?
-        frame.addMouseListener(new MouseAdapter() {  //클릭이벤트가 발생했을 때
-            public void mouseClicked(MouseEvent e){
-                if (!gameOver){ //게임이 진행되고 있다면
-                    if (e.getX() >= startX+10 && e.getX() <= (startX+10)+frameWidth){ // 버튼이 프레임의 센터 위치를 고려(온오프보드 쯤)
-                        if (e.getY() >= startY+35 && e.getY() <= startY+35+frameHeight){
-                            int x = (e.getX()-startX-11)/23; //23으로 나누는 이유는,,??
-                            int y = (e.getY()-startY-36)/23;
-                            if (e.getButton() == MouseEvent.BUTTON3){
-                                if (onOffBoard[y][x] == 2){ //녹색(지뢰로 표시돼 있는걸) 우클릭한다면
-                                    onOffBoard[y][x] = 1; // 클릭가능한 일반으로 바꾸고
-                                    numBombsLeft += 1; // 남아있는 지뢰수를 하나 늘리기
-                                }else{
-                                    if (onOffBoard[y][x] != 0){ // 1이라면
-                                        onOffBoard[y][x] = 2; // 녹색으로(지뢰로)바꾸고
-                                        numBombsLeft -= 1; //찾아야하는 지뢰수 감소
-                                    }
+        frame.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                // 마우스 클릭 시 좌표 검사
+                if (!gameOver) {
+                    // 지뢰판 내 클릭 검사
+                    if (e.getX() >= 243 && e.getX() <= 243 + BOARD_WIDTH) {
+                        if (e.getY() >= 131 && e.getY() <= 131 + BOARD_HEIGHT) {
+                            // 어느 칸 클릭 했는지 확인 하는 수식
+                            int x = (e.getX() - 246) / 31;
+                            int y = (e.getY() - 136) / 31;
+                            // 오른쪽 클릭일 때
+                            if (e.getButton() == MouseEvent.BUTTON3) {
+                                // 깃발이 아니고 1일 때 (가림판일 때), 지뢰 -1하고 깃발
+                                if (buttonBoard[y][x] == 1) {
+                                    buttonBoard[y][x] = 2;
+                                    mine -= 1;
                                 }
-                            }else{ // 우클릭이 아니고 좌클릭 이라면?
-                                if (onOffBoard[y][x] != 2){ // 1이라면
-                                    if (firstClick){  //첫 클릭이라면
-                                        secondsTimer.start(); //타이머 시작하고
-                                        board[y][x] = 0; //  첫클릭으로 누른건 0으로 설정하고
-                                        while (true){ //
+                                // 깃발이면 깃발 풀고 가림판으로, 지뢰도 +1
+                                else if (buttonBoard[y][x] == 2) {
+                                    buttonBoard[y][x] = 3;
+                                    mine += 1;
+                                } else if (buttonBoard[y][x] == 3) {
+                                    buttonBoard[y][x] = 1;
+                                }
+                            }
+                            // 왼쪽 클릭일 때
+                            else {
+                                if (buttonBoard[y][x] == 1) {
+                                    // 첫 클릭
+                                    if (firstClick) {
+                                        timer.start(); // 타이머 시작
+                                        mineBoard[y][x] = 0; // 첫 클릭에 게임오버 되지 않게 0으로 설정
+                                        while (true) {
                                             makeBoard(y, x);
-                                            if (board[y][x] == 0){
+                                            if (mineBoard[y][x] == 0) {
                                                 break;
                                             }
                                         }
-                                        firstClick = false; // 첫 클릭 하고 나면 False로 변경
+                                        firstClick = false;
                                     }
-                                    if (board[y][x] != 9){ //클릭을 누르면 expand로 확장
-                                        expand(y, x);
-                                    }else{
-                                        secondsTimer.stop();
-                                        buttonFace = "X(";
-                                        gameOver();
+                                    // 지뢰가 아니면
+                                    if (mineBoard[y][x] != 9) {
+                                        checkMap(y, x); // 클릭 주변으로 확장
+                                    }
+                                    // 지뢰인 경우
+                                    else {
+                                        gameOver(); // 게임오버 선언
                                     }
                                 }
                             }
                         }
                     }
                 }
-                hasWon();
+                gameWin();
             }
         });
+
         frame.addMouseListener(new MouseAdapter() {
-            public void mousePressed(MouseEvent e){
-                if (e.getX() >= 350 && e.getX() <= 400){ // 종료버튼
-                    if (e.getY() >= 70 && e.getY() <= 120){
-                        buttonColorChange = Color.GRAY;
-                        gameOver = false;
-                        firstClick = true;
-                        secondsCounter = 0;
-                        secondsTimer.start();
-                        numBombsLeft = 99;
-                        for (int i=0; i<height; i++){
-                            Arrays.fill(onOffBoard[i], 1);
-                        }
-                    }
-                }
-                if (!gameOver){ // 게임 화면
-                    if (e.getX() >= startX+10 && e.getX() <= (startX+10)+frameWidth){
-                        if (e.getY() >= startY+35 && e.getY() <= startY+35+frameHeight){
-                            buttonFace = ":o";
-                        }
+            public void mousePressed(MouseEvent e) {
+                // 초기화 버튼
+                if (e.getX() >= 350 && e.getX() <= 400) {
+                    if (e.getY() >= 70 && e.getY() <= 120) {
+                        gameInit();
                     }
                 }
             }
-            public void mouseReleased(MouseEvent e){
-                if (!gameOver){
-                    buttonColorChange = Color.LIGHT_GRAY;
-                    buttonFace = ":)";
-                }
-
-            }
-
         });
         frame.setVisible(true);
-        frame.setSize(windowWidth, windowHeight);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(750, 500);
+    }
 
-    }
-    public static void gameOver(){
-        gameOver = true;
-        for (int i=0; i<height; i++){
-            for (int j=0; j<width; j++){
-                if (board[i][j] == 9){
-                    onOffBoard[i][j] = 0;
+    public static void makeBoard(int y, int x) {  //첫 클릭시 맵 만들기 (맵 만드는 함수)
+        for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
+            Arrays.fill(mineBoard[i], 0);
+        }
+        int Boom = 10; // number of mines (지뢰 개수)
+        Random rand = new Random();
+
+        while (Boom > 0) { // 지뢰 생성
+            int rand1 = rand.nextInt(9);
+            int rand2 = rand.nextInt(9);
+
+            if (mineBoard[rand1][rand2] == 9) { // 이미 해당 칸이 지뢰인 경우
+                continue;
+            }
+            if (rand1 == y && rand2 == x) { // 클릭한 곳인 경우 (처음 선택한 곧은 지뢰 x)
+                continue;
+            }
+
+            mineBoard[rand1][rand2] = 9; // 지뢰 있는 곳을 9로 설정
+            Boom = Boom - 1;
+        }
+        //나머지 좌표를 설정
+        for (int i = 0; i < mineBoard.length; i++) {
+            for (int j = 0; j < mineBoard[0].length; j++) {
+                if (mineBoard[i][j] != 9) { //지뢰가 없는 곳이라면
+                    mineBoard[i][j] = count_boom(i, j); //해당 함수를 통해 값을 설정
                 }
             }
         }
-        numBombsLeft = 99;
     }
-    public static void hasWon(){ //게임 성공 시
-        int blankCounter = 0;
-        for (int i=0; i<height; i++){
-            for (int j=0; j<width; j++){
-                if (onOffBoard[i][j] == 0){
-                    blankCounter++;
+
+    public static int count_boom(int row, int col) { //맵 생성시 주변을 확인해 맵 값 선택
+        int sum = 0;
+        int nx = 0;
+        int ny = 0;
+        for (int i = -1; i <= 1; i++) {
+            nx = (row + i);
+            if (nx < 0 || nx >= mineBoard.length) {
+            } else {
+                for (int j = -1; j <= 1; j++) {
+                    ny = col + j;
+                    if (ny < 0 || ny >= mineBoard[0].length || (nx == row && ny == col)) {
+                    } else if (mineBoard[nx][ny] == 9) {
+                        sum += 1;
+                    }
                 }
             }
         }
-        if (blankCounter == 382){ //
-            buttonFace = "B)";
+        return sum;
+    }
+
+    public static void gameInit() {
+        gameOver = false;
+        firstClick = true;
+        winningFlag = false;
+        mine = 10;
+        timeCounter = 0;
+        timer.stop();
+        for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
+            Arrays.fill(buttonBoard[i], 1);
+        }
+    }
+    public static void gameWin() {
+        int openButtonCnt = 0;
+        int findMineCnt = 0;
+        for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
+            for (int j = 0; j < MINE_BOARD_WIDTH; j++) {
+                // 몇 칸 열렸는지 검사
+                if (buttonBoard[i][j] == 0) {
+                    openButtonCnt++;
+                }
+                if (buttonBoard[i][j] == 2 && mineBoard[i][j] == 9) {
+                    findMineCnt++;
+                }
+            }
+        }
+
+        // 다 열렸으면 우승
+        if (openButtonCnt == 71 || findMineCnt == 10) {
+            mine = 0;
+            winningFlag = true;
+            frame.revalidate();
             gameOver();
         }
     }
-    public static void expand(int cellY, int cellX){ //재귀 함수를 통해 구현
+
+    // 게임 오버 선언
+    public static void gameOver() {
+        gameOver = true;
+        for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
+            for (int j = 0; j < MINE_BOARD_WIDTH; j++) {
+                if (mineBoard[i][j] == 9) {
+                    buttonBoard[i][j] = 0; // 지뢰 공개
+                }
+            }
+        }
+        timer.stop();
+    }
+
+    // 재귀호출하며 확장
+    public static void checkMap(int y, int x) {
+        int[] template = {-1, 0, 1};
         try{
-            if (board[cellY][cellX] == 0 && onOffBoard[cellY][cellX] == 1){
-                onOffBoard[cellY][cellX] = 0;
+            // 보드판 숫자가 0이고 안 열려있으면 주변으로 확장
+            if (mineBoard[y][x] == 0 && buttonBoard[y][x] == 1) {
+                buttonBoard[y][x] = 0; // 열기
                 for(int i = 0;i<template.length;i++){
                     for (int j =0;j<template.length;j++){
-                        if (i == 1 && j == 1){}
-                        else{
-                            expand(cellY + template[i], cellX + template[j]);
-                        }
-
+                        if (i == 1 && j == 1) continue;
+                        else checkMap(y + template[i], x + template[j]);
                     }
                 }
             }
             else{
-                if (onOffBoard[cellY][cellX] == 1){ //expand가 멈추면 선택을 못하도록 선택
-                    onOffBoard[cellY][cellX] = 0;
-                }
+                // 보드판 숫자가 0이 아니지만 안 열려있을 때
+                if (buttonBoard[y][x] == 1) buttonBoard[y][x] = 0; // 열기만 하고 확장 X
             }
         }
-        catch(java.lang.ArrayIndexOutOfBoundsException e){
-
-        }
-
+        catch(java.lang.ArrayIndexOutOfBoundsException e){}
     }
-    public void paint(Graphics g){
-        g.setColor(Color.WHITE);
-        g.fillRect(startX, startY, frameWidth, frameHeight);
-        for (int i=0; i<height; i++){
-            for (int j=0; j<width; j++){
-                if (onOffBoard[i][j] == 1){
-                    g.setColor(Color.BLACK);
-                    g.fillRect(startX+j*23, startY+i*23, 22, 22);
-                }else if (onOffBoard[i][j] == 0){
-                    if (board[i][j] == 9){
-                        if (buttonFace != "B)"){
-                            g.setColor(Color.RED);
-                        }
-                    }else{
-                        g.setColor(Color.LIGHT_GRAY);
-                    }
-                    g.fillRect(startX+j*23, startY+i*23, 22, 22);
-                    g.setColor(Color.BLACK);
-                    g.setFont(new Font("Courier", Font.PLAIN, 14));
-                    if (board[i][j] != 9)
-                        g.drawString(Integer.toString(board[i][j]), startX+8+j*23, startY+15+i*23);
-                    else
-                        g.drawString("B", startX+8+j*23, startY+15+i*23);
-                }else{
-//                    g.setColor(Color.GREEN);
-                    g.fillRect(startX+j*23, startY+i*23, 22, 22);
-                    ImageIcon flag = new ImageIcon("C:/Users/정재혁/MineSweeper_Game/sprites/flag.png");
-                    Image img = flag.getImage();//아이콘을 이미지로 받아옴 -> 사이즈 조절을 위함
-                    Image changeImg = img.getScaledInstance(22,22, Image.SCALE_SMOOTH);// 아이콘 사이즈 조절
-                    ImageIcon Flag = new ImageIcon(changeImg);// 다시 아이콘으로 변경!!
-                    g.drawImage(changeImg,startX+8+j*23 - 8, startY+15+i*23 -14, this);
 
+    public void paint(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.fillRect(235, 100, BOARD_WIDTH, BOARD_HEIGHT);
+
+        for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
+            for (int j = 0; j < MINE_BOARD_WIDTH; j++) {
+                // 열리지 않은 지뢰판
+                if (buttonBoard[i][j] == 1) {
+                    g.setColor(Color.BLACK);
+                    g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
                 }
-                g.setColor(buttonColorChange);
+                // 열린 지뢰판
+                else if (buttonBoard[i][j] == 0) {
+                    // 지뢰가 열렸을 경우
+                    if (mineBoard[i][j] == 9) {
+                        if (!winningFlag) {
+                            g.setColor(Color.RED);
+                            g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
+                            g.setColor(Color.BLACK);
+                            g.setFont(new Font("굴림", Font.BOLD, 18));
+                            g.drawString(Integer.toString(mineBoard[i][j]), 245 + j * 31, 122 + i * 31);
+                        }
+                        else {
+                            g.setColor(Color.WHITE);
+                            g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
+                            g.setColor(Color.BLACK);
+                            g.setFont(new Font("굴림", Font.BOLD, 18));
+                            g.drawString(Integer.toString(mineBoard[i][j]), 245 + j * 31, 122 + i * 31);
+                        }
+                    }
+                    // 지뢰가 아닌 지뢰판이 열렸을 경우
+                    else {
+                        g.setColor(Color.LIGHT_GRAY);
+                        g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
+                        g.setColor(Color.BLACK);
+                        g.setFont(new Font("굴림", Font.BOLD, 18));
+                        g.drawString(Integer.toString(mineBoard[i][j]), 245 + j * 31, 120 + i * 31);
+                    }
+                }
+                // 깃발 그리기
+                else if (buttonBoard[i][j] == 2) {
+                    g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
+                    ImageIcon flag = new ImageIcon("sprites/flag.png");
+                    Image img = flag.getImage(); //아이콘을 이미지로 받아옴 -> 사이즈 조절을 위함
+                    Image changeImg = img.getScaledInstance(30, 30, Image.SCALE_SMOOTH);// 아이콘 사이즈 조절
+                    ImageIcon Flag = new ImageIcon(changeImg);// 다시 아이콘으로 변경!!
+                    g.drawImage(changeImg, 235 + j * 31, 100 + i * 31,this);
+                }
+                else {
+                    g.setColor(Color.BLACK);
+                    g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
+                    g.setFont(new Font("굴림", Font.BOLD, 18));
+                    g.setColor(Color.WHITE);
+                    g.drawString("?", 245 + j * 31, 120 + i * 31);
+                }
+                // 기타 GUI
+                g.setColor(Color.LIGHT_GRAY);
                 g.fillRect(350, 30, 50, 50);
-                g.setColor(Color.BLACK);
-                g.drawString(buttonFace, 365, 55);
                 g.fillRect(150, 30, 70, 50);
                 g.fillRect(530, 30, 70, 50);
-                g.setColor(Color.WHITE);
-                g.setFont(new Font("Courier", Font.PLAIN, 24));
-                g.drawString(Integer.toString(numBombsLeft), 175, 55);
-                g.drawString(Integer.toString(secondsCounter), 555, 55);
+
+                g.setColor(Color.BLACK);
+                g.setFont(new Font("굴림", Font.BOLD, 24));
+                g.drawString(Integer.toString(mine), 175, 55);
+                g.drawString(":)", 365, 55);
+                g.drawString(Integer.toString(timeCounter), 555, 55);
             }
         }
     }
-    public void printBoard(){ // for test
-        for (int i=0; i<height; i++){
-            for (int j=0; j<width; j++){
-                System.out.print(board[i][j]);
-            }
-            System.out.println("\n");
-        }
-    }
-    public void actionPerformed(ActionEvent e) {
-        repaint();
-    }
+
+    public void actionPerformed(ActionEvent e) { repaint();}
 }
