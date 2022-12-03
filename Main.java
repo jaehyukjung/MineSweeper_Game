@@ -17,8 +17,8 @@ public class Main extends JPanel implements ActionListener{
     private static JFrame frame;
 
     // Board Size
-    private static final int BOARD_WIDTH = 278;
-    private static final int BOARD_HEIGHT = 275;
+    private static final int BOARD_WIDTH = 279;
+    private static final int BOARD_HEIGHT = 279;
 
     // Mine Board Size
     private static final int MINE_BOARD_WIDTH = 9;
@@ -30,16 +30,16 @@ public class Main extends JPanel implements ActionListener{
     private static int[][] mineBoard = new int[9][9];
 
     // onOffBoard: 숫자를 심어놓은 보드를 열고 가리는 가림판
-    // 0: , 1: 아직 열지 않은 지뢰판, 2: 깃발, //TODO: 3: 물음표
+    // 0: , 1: 아직 열지 않은 지뢰판, 2: 깃발, TODO: 3: 물음표
     private static int[][] buttonBoard = new int[9][9];
     private static Timer timer;
 
     // mousePressed 이벤트 (pressed) 호출 시: true,
-    private static boolean firstClick = true;
+    private static boolean firstClick = true; //초기 클릭은 true 누르고 나면 false로 변경
     private static boolean gameOver = false;
     private static boolean winningFlag = false;
 
-    private static int mine = 10;
+    private static int mine = 10; //지뢰 개수
     private static int timeCounter = 0;
 
     public Main() {
@@ -57,7 +57,8 @@ public class Main extends JPanel implements ActionListener{
     }
     public static void main(String args[]) {
         frame = new JFrame("Minesweeper");
-        frame.setLayout(new GridLayout());
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 창닫으면 코드 종료
+        frame.setLayout(new GridLayout()); //버튼을 배치를 용이하게 하기 위해 GriedLayout 사용
 
         Main mineSweeper = new Main();
         frame.add(mineSweeper);
@@ -168,34 +169,31 @@ public class Main extends JPanel implements ActionListener{
         int sum = 0;
         int nx = 0;
         int ny = 0;
-        for (int i = -1; i <= 1; i++) {
-            nx = (row + i);
-            if (nx < 0 || nx >= mineBoard.length) {
-            } else {
-                for (int j = -1; j <= 1; j++) {
-                    ny = col + j;
-                    if (ny < 0 || ny >= mineBoard[0].length || (nx == row && ny == col)) {
-                    } else if (mineBoard[nx][ny] == 9) {
-                        sum += 1;
-                    }
-                }
+        for (int i = -1; i <= 1; i++) {  // 좌, 가운데, 우 판단
+            for (int j = -1; j <= 1; j++){ // 아래, 가운데, 위 판단
+                // 왼쪽 아래부터 순서대로 판단해서 지뢰가 있다면 더하기
+                nx = (row + i);
+                ny = (col + j);
+                // 판단 범위가 게임 보드 밖이거나 row, col인경우 즉 주변이 아니라 자기 자신을 판단하는 경우 판단 x
+                if (nx < 0 || nx >= mineBoard.length || ny < 0 || ny >= mineBoard[0].length || (nx == row && ny == col)){continue;}
+                else if (mineBoard[nx][ny] == 9) { sum += 1;}
             }
         }
         return sum;
     }
 
-    public static void gameInit() {
+    public static void gameInit() { //게임 초기화 하는 함수
         gameOver = false;
         firstClick = true;
         winningFlag = false;
         mine = 10;
-        timeCounter = 0;
-        timer.stop();
+        timeCounter = 0; // 게임 타이머 리셋 후
+        timer.stop(); // 타이머 종료 -> 게임 시작하면 다시 타이머 재생
         for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
-            Arrays.fill(buttonBoard[i], 1);
+            Arrays.fill(buttonBoard[i], 1); // 모든 버튼을 초기 세팅으로 변경 (1이면 누를 수 있는 상태)
         }
     }
-    public static void gameWin() {
+    public static void gameWin() { //게임 클리어시 보여주는 함수
         int openButtonCnt = 0;
         int findMineCnt = 0;
         for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
@@ -204,6 +202,7 @@ public class Main extends JPanel implements ActionListener{
                 if (buttonBoard[i][j] == 0) {
                     openButtonCnt++;
                 }
+                // button ==2 는 지뢰 표시로 지뢰표시 이면서 그게 지뢰인 경우 find MineCnt 개수 늘리기
                 if (buttonBoard[i][j] == 2 && mineBoard[i][j] == 9) {
                     findMineCnt++;
                 }
@@ -211,6 +210,7 @@ public class Main extends JPanel implements ActionListener{
         }
 
         // 다 열렸으면 우승
+        // 지뢰를 다 찾았거나 지뢰 빼고 누른 버튼이 전체 버튼 - 지뢰 개수 이면은 승리
         if (openButtonCnt == 71 || findMineCnt == 10) {
             mine = 0;
             winningFlag = true;
@@ -269,13 +269,15 @@ public class Main extends JPanel implements ActionListener{
                 else if (buttonBoard[i][j] == 0) {
                     // 지뢰가 열렸을 경우
                     if (mineBoard[i][j] == 9) {
+                        // 게임중 지뢰를 누른 경우
                         if (!winningFlag) {
-                            g.setColor(Color.RED);
+                            g.setColor(Color.RED); // 빨간 배경으로 채우기
                             g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
                             g.setColor(Color.BLACK);
                             g.setFont(new Font("굴림", Font.BOLD, 18));
                             g.drawString(Integer.toString(mineBoard[i][j]), 245 + j * 31, 122 + i * 31);
                         }
+                        // 게임에서 승리해서 지뢰를 공개 하는 경우
                         else {
                             g.setColor(Color.WHITE);
                             g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
@@ -312,14 +314,14 @@ public class Main extends JPanel implements ActionListener{
                 // 기타 GUI
                 g.setColor(Color.LIGHT_GRAY);
                 g.fillRect(350, 30, 50, 50);
-                g.fillRect(150, 30, 70, 50);
-                g.fillRect(530, 30, 70, 50);
+                g.fillRect(235, 30, 70, 50);
+                g.fillRect(445, 30, 70, 50);
 
                 g.setColor(Color.BLACK);
                 g.setFont(new Font("굴림", Font.BOLD, 24));
-                g.drawString(Integer.toString(mine), 175, 55);
-                g.drawString(":)", 365, 55);
-                g.drawString(Integer.toString(timeCounter), 555, 55);
+                g.drawString(Integer.toString(mine), 258, 60);
+                g.drawString(":)", 365, 60);
+                g.drawString(Integer.toString(timeCounter), 465, 60);
             }
         }
     }
