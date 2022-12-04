@@ -5,11 +5,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.TimerTask;
 
 
 public class Main extends JPanel implements ActionListener{
@@ -71,8 +68,8 @@ public class Main extends JPanel implements ActionListener{
                     if (e.getX() >= 243 && e.getX() <= 243 + BOARD_WIDTH) {
                         if (e.getY() >= 131 && e.getY() <= 131 + BOARD_HEIGHT) {
                             // 어느 칸 클릭 했는지 확인 하는 수식
-                            int x = (e.getX() - 246) / 31;
-                            int y = (e.getY() - 136) / 31;
+                            int x = (e.getX() - 243) / 31;
+                            int y = (e.getY() - 131) / 31;
                             // 오른쪽 클릭일 때
                             if (e.getButton() == MouseEvent.BUTTON3) {
                                 // 깃발이 아니고 1일 때 (가림판일 때), 지뢰 -1하고 깃발
@@ -181,6 +178,27 @@ public class Main extends JPanel implements ActionListener{
         }
         return sum;
     }
+    // 재귀호출하며 확장
+    public static void checkMap(int y, int x) {
+        int[] template = {-1, 0, 1};
+        try{
+            // 보드판 숫자가 0이고 안 열려있으면 주변으로 확장
+            if (mineBoard[y][x] == 0 && buttonBoard[y][x] == 1) {
+                buttonBoard[y][x] = 0; // 열기
+                for(int i = 0;i<template.length;i++){
+                    for (int j =0;j<template.length;j++){
+                        if (i == 1 && j == 1) continue;
+                        else checkMap(y + template[i], x + template[j]);
+                    }
+                }
+            }
+            else{
+                // 보드판 숫자가 0이 아니지만 안 열려있을 때
+                if (buttonBoard[y][x] == 1) buttonBoard[y][x] = 0; // 열기만 하고 확장 X
+            }
+        }
+        catch(java.lang.ArrayIndexOutOfBoundsException e){}
+    }
 
     public static void gameInit() { //게임 초기화 하는 함수
         gameOver = false;
@@ -232,73 +250,57 @@ public class Main extends JPanel implements ActionListener{
         timer.stop();
     }
 
-    // 재귀호출하며 확장
-    public static void checkMap(int y, int x) {
-        int[] template = {-1, 0, 1};
-        try{
-            // 보드판 숫자가 0이고 안 열려있으면 주변으로 확장
-            if (mineBoard[y][x] == 0 && buttonBoard[y][x] == 1) {
-                buttonBoard[y][x] = 0; // 열기
-                for(int i = 0;i<template.length;i++){
-                    for (int j =0;j<template.length;j++){
-                        if (i == 1 && j == 1) continue;
-                        else checkMap(y + template[i], x + template[j]);
-                    }
-                }
-            }
-            else{
-                // 보드판 숫자가 0이 아니지만 안 열려있을 때
-                if (buttonBoard[y][x] == 1) buttonBoard[y][x] = 0; // 열기만 하고 확장 X
-            }
-        }
-        catch(java.lang.ArrayIndexOutOfBoundsException e){}
-    }
+
 
     public void paint(Graphics g) {
-        g.setColor(Color.WHITE);
+        g.setColor(Color.WHITE);//프레임 각각을 구분해주는 라인선 색깔
         g.fillRect(235, 100, BOARD_WIDTH, BOARD_HEIGHT);
+        //배경을 채워서 사각형 그리는 함수(해당 좌표(235,100)에 (BOARD_WIDTH, BOARD_HEIGHT)만큼 사각형을 그린다)
 
         for (int i = 0; i < MINE_BOARD_HEIGHT; i++) {
             for (int j = 0; j < MINE_BOARD_WIDTH; j++) {
-                // 열리지 않은 지뢰판
-                if (buttonBoard[i][j] == 1) {
-                    g.setColor(Color.BLACK);
+
+                if (buttonBoard[i][j] == 1) {// 열리지 않은 지뢰판
+                    g.setColor(Color.BLACK);// 색을 BLACK으로 지정
                     g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
                 }
-                // 열린 지뢰판
-                else if (buttonBoard[i][j] == 0) {
-                    // 지뢰가 열렸을 경우
-                    if (mineBoard[i][j] == 9) {
-                        // 게임중 지뢰를 누른 경우
-                        if (!winningFlag) {
+
+                else if (buttonBoard[i][j] == 0) {// 열린 지뢰판
+
+                    if (mineBoard[i][j] == 9) {// 지뢰가 열렸을 경우
+
+                        if (!winningFlag) {// 게임이 완료된게 아니면
                             g.setColor(Color.RED); // 빨간 배경으로 채우기
                             g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
                             g.setColor(Color.BLACK);
-                            g.setFont(new Font("굴림", Font.BOLD, 18));
+                            g.setFont(new Font("굴림", Font.BOLD, 18));//글자 폰트 및 크기 설정
                             g.drawString(Integer.toString(mineBoard[i][j]), 245 + j * 31, 122 + i * 31);
+                            //지뢰 위치에 9 출력
                         }
                         // 게임에서 승리해서 지뢰를 공개 하는 경우
                         else {
-                            g.setColor(Color.WHITE);
+                            g.setColor(Color.WHITE);//지뢰칸의 배경색을 흰색으로 변경
                             g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
-                            g.setColor(Color.BLACK);
+                            g.setColor(Color.BLACK);//글자 색 BLACK으로 지정
                             g.setFont(new Font("굴림", Font.BOLD, 18));
                             g.drawString(Integer.toString(mineBoard[i][j]), 245 + j * 31, 122 + i * 31);
+                            //지뢰 위치에 9 출력
                         }
                     }
                     // 지뢰가 아닌 지뢰판이 열렸을 경우
                     else {
-                        g.setColor(Color.LIGHT_GRAY);
+                        g.setColor(Color.LIGHT_GRAY);//해당 칸의 색을 밝은 회색으로 변경
                         g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
                         g.setColor(Color.BLACK);
                         g.setFont(new Font("굴림", Font.BOLD, 18));
                         g.drawString(Integer.toString(mineBoard[i][j]), 245 + j * 31, 120 + i * 31);
+                        //주변 지뢰 갯수 출력
                     }
                 }
                 // 깃발 그리기
                 else if (buttonBoard[i][j] == 2) {
                     g.fillRect(235 + j * 31, 100 + i * 31, 30, 30);
-                    ImageIcon flag = new ImageIcon("sprites/flag.png");
+                    ImageIcon flag = new ImageIcon("images/flag.png");
                     Image img = flag.getImage(); //아이콘을 이미지로 받아옴 -> 사이즈 조절을 위함
                     Image changeImg = img.getScaledInstance(30, 30, Image.SCALE_SMOOTH);// 아이콘 사이즈 조절
                     ImageIcon Flag = new ImageIcon(changeImg);// 다시 아이콘으로 변경!!
