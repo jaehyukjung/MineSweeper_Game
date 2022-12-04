@@ -26,8 +26,8 @@ public class Main extends JPanel implements ActionListener{
     // 0~8: 해당 칸 주변의 지뢰 개수, 9: 지뢰
     private static int[][] mineBoard = new int[9][9];
 
-    // onOffBoard: 숫자를 심어놓은 보드를 열고 가리는 가림판
-    // 0: , 1: 아직 열지 않은 지뢰판, 2: 깃발, TODO: 3: 물음표
+    // buttonBoard: 숫자를 심어놓은 보드를 열고 가리는 가림판
+    // 0: 열린 지뢰판, 1: 아직 열지 않은 지뢰판, 2: 깃발, 3: 물음표
     private static int[][] buttonBoard = new int[9][9];
     private static Timer timer;
 
